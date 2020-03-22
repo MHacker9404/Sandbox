@@ -3,9 +3,14 @@
     {
         protected Mediator _mediator;
 
-        public Colleague(Mediator mediator)
+        //public Colleague(Mediator mediator)
+        //{
+        //    _mediator = mediator;
+        //}
+
+        internal void SetMediator(Mediator mediator)
         {
-            _mediator = mediator;
+            this._mediator = mediator;
         }
 
         public virtual void Send(string message)

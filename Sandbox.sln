@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29911.98
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediatorDemo", "MediatorDemo\MediatorDemo.csproj", "{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MediatorDemo", "MediatorDemo\MediatorDemo.csproj", "{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mediator", "Mediator", "{7E28FBBD-9972-41A2-95FA-000D5FF31112}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MediatorFormDemo", "MediatorFormDemo\MediatorFormDemo.csproj", "{88472E21-A82F-42D8-B0BA-F72E2D335BF2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediatRDemo", "MediatRDemo\MediatRDemo.csproj", "{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +21,22 @@ Global
 		{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88472E21-A82F-42D8-B0BA-F72E2D335BF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88472E21-A82F-42D8-B0BA-F72E2D335BF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88472E21-A82F-42D8-B0BA-F72E2D335BF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88472E21-A82F-42D8-B0BA-F72E2D335BF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BE2EA97C-2B89-4B8B-8DEC-881AF88D2670} = {7E28FBBD-9972-41A2-95FA-000D5FF31112}
+		{88472E21-A82F-42D8-B0BA-F72E2D335BF2} = {7E28FBBD-9972-41A2-95FA-000D5FF31112}
+		{F4DB8D50-3130-4EEF-BAC2-4EE3593CAFDC} = {7E28FBBD-9972-41A2-95FA-000D5FF31112}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {33F820E3-6B95-4B73-A6B6-AE838F787713}
