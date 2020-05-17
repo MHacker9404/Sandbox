@@ -7,6 +7,8 @@ namespace MediatorDemo
     {
         static async Task Main(string[] args)
         {
+            StructuralExample();
+
             Console.ReadKey();
         }
 
