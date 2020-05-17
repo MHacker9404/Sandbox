@@ -7,14 +7,16 @@ namespace Marketplace.Domain
     {
         public Guid Value { get; }
 
-        public UserId(Guid value)
+        internal UserId(Guid value) => Value = value;
+
+        public static UserId FromGuid(Guid value)
         {
             if (value == default)
             {
                 throw new ArgumentNullException(nameof(value), $"User ID cannot be empty");
             }
 
-            Value = value;
+            return new UserId(value);
         }
 
         public static implicit operator Guid(UserId self) => self.Value;

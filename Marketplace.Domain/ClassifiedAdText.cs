@@ -5,18 +5,16 @@ namespace Marketplace.Domain
 {
     public class ClassifiedAdText : Value<ClassifiedAdText>
     {
-        private ClassifiedAdText(string value)
-        {
-            if (value.Length > 100)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), $"Text cannot be longer than 100 characters");
-            }
-
-            Value = value;
-        }
+        internal ClassifiedAdText(string value) => Value = value;
 
         public string Value { get; }
-        public static ClassifiedAdText FromString(string text) => new ClassifiedAdText(text);
+
+        public static ClassifiedAdText FromString(string text)
+        {
+            if (text.Length > 100) throw new ArgumentOutOfRangeException(nameof(text), "Text cannot be longer than 100 characters");
+
+            return new ClassifiedAdText(text);
+        }
 
         public static implicit operator string(ClassifiedAdText self) => self.Value;
     }

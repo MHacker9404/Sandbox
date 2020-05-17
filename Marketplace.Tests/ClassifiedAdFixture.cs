@@ -13,7 +13,7 @@ namespace Marketplace.Tests
     [TestClass]
     public class ClassifiedAdFixture
     {
-        private ClassifiedAd _sut = new ClassifiedAd(new ClassifiedAdId(Guid.NewGuid()), new UserId(Guid.NewGuid()));
+        private ClassifiedAd _sut;
 
         private readonly IEnumerable<CurrencyDetails> _currencies = new[]
                                                                     {
@@ -38,6 +38,12 @@ namespace Marketplace.Tests
 
         private readonly Mock<ICurrencyLookup> _mock = new Mock<ICurrencyLookup>();
 
+        [TestInitialize]
+        public void TestSetup()
+        {
+            _sut = new ClassifiedAd(ClassifiedAdId.FromGuid(Guid.NewGuid()), UserId.FromGuid(Guid.NewGuid()));
+        }
+
         public ClassifiedAdFixture()
         {
             _mock.Setup(m => m.FindCurrency(It.IsAny<string>())).Returns((string code) =>
@@ -52,8 +58,8 @@ namespace Marketplace.Tests
         public void Can_publish_a_valid_ad()
         {
             //  Arrange
-            _sut.SetTitle(ClassifiedAdTitle.FromString("Title"));
-            _sut.UpdateText(ClassifiedAdText.FromString("Text"));
+            _sut.SetTitle( ClassifiedAdTitle.FromString( "Title" ) );
+            _sut.UpdateText( ClassifiedAdText.FromString( "Text" ) );
             _sut.UpdatePrice(Price.FromDecimal(100.10m, "USD", _mock.Object));
 
             //  Act
