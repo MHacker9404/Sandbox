@@ -19,6 +19,16 @@ namespace Marketplace.Domain
 
         public ClassifiedAd(ClassifiedAdId id, UserId ownerId) => Apply(new ClassifiedAdCreated {Id = id, OwnerId = ownerId});
 
+        private ClassifiedAd() { }
+
+        //  for persistence in RavenDB
+        private string DbId
+        {
+            get => $"ClassifiedAd/{Id.Value}";
+            set { }
+        }
+
+        public Guid AdId { get; private set; }
         public UserId OwnerId { get; private set; }
         public ClassifiedAdTitle Title { get; private set; }
         public ClassifiedAdText Text { get; private set; }
@@ -51,6 +61,8 @@ namespace Marketplace.Domain
                     OwnerId = new UserId(e.OwnerId);
                     State = ClassifiedAdState.Inactive;
                     Pictures = new List<Picture>();
+                    //  required for persistence
+                    AdId = e.Id;
                     break;
                 case ClassifiedAdTitleChanged e:
                     Title = ClassifiedAdTitle.FromString(e.Title);

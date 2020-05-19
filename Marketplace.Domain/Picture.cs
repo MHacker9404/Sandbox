@@ -8,6 +8,10 @@ namespace Marketplace.Domain
     {
         public Picture(Action<object> applier) : base(applier) { }
 
+        private Picture() { }
+
+        public ClassifiedAdId ParentId { get; private set; }
+        public Guid PicId { get; private set; }
         public PictureSize Size { get; private set; }
         public Uri Location { get; private set; }
         public int Order { get; private set; }
@@ -22,6 +26,7 @@ namespace Marketplace.Domain
             switch (@event)
             {
                 case PictureAdded e:
+                    ParentId = ClassifiedAdId.FromGuid(e.ClassifiedAdId);
                     Id = PictureId.FromGuid(e.Id);
                     Location = new Uri(e.Url);
                     Size = PictureSize.FromHeightWidth(e.Height, e.Width);

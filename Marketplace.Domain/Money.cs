@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Marketplace.Framework;
 
 namespace Marketplace.Domain
@@ -8,24 +7,18 @@ namespace Marketplace.Domain
     {
         private const string DefaultCurrency = "USD";
 
+        protected Money() { }
+
         protected Money(decimal amount, string currency, ICurrencyLookup currencyLookup)
         {
-            if (string.IsNullOrEmpty(currency))
-            {
-                throw new ArgumentNullException(nameof(currency), $"Currency must be specified");
-            }
+            if (string.IsNullOrEmpty(currency)) throw new ArgumentNullException(nameof(currency), "Currency must be specified");
 
             var details = currencyLookup.FindCurrency(currency);
-            if (!details.InUse)
-            {
-                throw new ArgumentException($"Currency {currency} is not valid");
-            }
+            if (!details.InUse) throw new ArgumentException($"Currency {currency} is not valid");
 
             if (decimal.Round(amount, details.Decimals) != amount)
-            {
                 throw new ArgumentOutOfRangeException(nameof(amount)
                                                       , $"Amount in {currency} cannot have more than {details.Decimals} decimals");
-            }
 
             Amount = amount;
             Currency = details;
@@ -43,20 +36,14 @@ namespace Marketplace.Domain
 
         public Money Add(Money right)
         {
-            if (Currency != right.Currency)
-            {
-                throw new CurrencyMismatchException($"Cannot sum amounts with different currencies");
-            }
+            if (Currency != right.Currency) throw new CurrencyMismatchException("Cannot sum amounts with different currencies");
 
             return new Money(Amount + right.Amount, Currency);
         }
 
         public Money Subtract(Money right)
         {
-            if (Currency != right.Currency)
-            {
-                throw new CurrencyMismatchException($"Cannot subtract amounts with different currencies");
-            }
+            if (Currency != right.Currency) throw new CurrencyMismatchException("Cannot subtract amounts with different currencies");
 
             return new Money(Amount - right.Amount, Currency);
         }
@@ -64,8 +51,7 @@ namespace Marketplace.Domain
         public static Money operator +(Money left, Money right) => left.Add(right);
         public static Money operator -(Money left, Money right) => left.Subtract(right);
 
-        public static Money FromDecimal(decimal amount, string currency, ICurrencyLookup currencyLookup) =>
-            new Money(amount, currency, currencyLookup);
+        public static Money FromDecimal(decimal amount, string currency, ICurrencyLookup currencyLookup) => new Money(amount, currency, currencyLookup);
 
         public static Money FromString(string amount, string currency, ICurrencyLookup currencyLookup) =>
             new Money(decimal.Parse(amount), currency, currencyLookup);

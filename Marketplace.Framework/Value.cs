@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Marketplace.Framework
 {
-    public abstract class Value<T> where T : Value<T>
+    public abstract class Value<T> where T : Value<T> 
     {
         [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
         private static readonly Member[] Members = GetMembers().ToArray();
@@ -20,20 +20,20 @@ namespace Marketplace.Framework
             var members = Members;
 
             return other.GetType() == typeof(T) && Members.All(m =>
-            {
-                var otherValue = m.GetValue(other);
-                var thisValue = m.GetValue(this);
-                return m.IsNonStringEnumerable
-                    ? GetEnumerableValues(otherValue).SequenceEqual(GetEnumerableValues(thisValue))
-                    : (otherValue?.Equals(thisValue) ?? thisValue == null);
-            });
+                                                               {
+                                                                   var otherValue = m.GetValue(other);
+                                                                   var thisValue = m.GetValue(this);
+                                                                   return m.IsNonStringEnumerable
+                                                                              ? GetEnumerableValues(otherValue).SequenceEqual(GetEnumerableValues(thisValue))
+                                                                              : otherValue?.Equals(thisValue) ?? thisValue == null;
+                                                               });
         }
 
         public override int GetHashCode() =>
             CombineHashCodes(
                 Members.Select(m => m.IsNonStringEnumerable
-                    ? CombineHashCodes(GetEnumerableValues(m.GetValue(this)))
-                    : m.GetValue(this)));
+                                        ? CombineHashCodes(GetEnumerableValues(m.GetValue(this)))
+                                        : m.GetValue(this)));
 
         public static bool operator ==(Value<T> left, Value<T> right) => Equals(left, right);
 
@@ -46,21 +46,21 @@ namespace Marketplace.Framework
                 var m = Members[0];
                 var value = m.GetValue(this);
                 return m.IsNonStringEnumerable
-                    ? $"{string.Join("|", GetEnumerableValues(value))}"
-                    : value.ToString();
+                           ? $"{string.Join("|", GetEnumerableValues(value))}"
+                           : value.ToString();
             }
 
             var values = Members.Select(m =>
-            {
-                var value = m.GetValue(this);
-                return m.IsNonStringEnumerable
-                    ? $"{m.Name}:{string.Join("|", GetEnumerableValues(value))}"
-                    : m.Type != typeof(string)
-                        ? $"{m.Name}:{value}"
-                        : value == null
-                            ? $"{m.Name}:null"
-                            : $"{m.Name}:\"{value}\"";
-            });
+                                        {
+                                            var value = m.GetValue(this);
+                                            return m.IsNonStringEnumerable
+                                                       ? $"{m.Name}:{string.Join("|", GetEnumerableValues(value))}"
+                                                       : m.Type != typeof(string)
+                                                           ? $"{m.Name}:{value}"
+                                                           : value == null
+                                                               ? $"{m.Name}:null"
+                                                               : $"{m.Name}:\"{value}\"";
+                                        });
             return $"{typeof(T).Name}[{string.Join("|", values)}]";
         }
 

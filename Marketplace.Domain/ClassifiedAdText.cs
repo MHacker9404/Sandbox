@@ -5,9 +5,11 @@ namespace Marketplace.Domain
 {
     public class ClassifiedAdText : Value<ClassifiedAdText>
     {
-        internal ClassifiedAdText(string value) => Value = value;
+        public ClassifiedAdText(string value) => Value = value;
 
-        public string Value { get; }
+        public string Value { get; private set; }
+
+        private ClassifiedAdText() { }
 
         public static ClassifiedAdText FromString(string text)
         {

@@ -10,7 +10,7 @@ namespace Marketplace.Domain
         public int Height { get; private set; }
         public int Width { get; private set; }
 
-        internal PictureSize(int height, int width)
+        public PictureSize(int height, int width)
         {
 
             Height = height;

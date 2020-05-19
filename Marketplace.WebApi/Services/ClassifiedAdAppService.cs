@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Marketplace.Domain;
+using Marketplace.Framework;
 using Marketplace.WebApi.Contracts.V1;
 using Serilog;
 
@@ -12,11 +13,13 @@ namespace Marketplace.WebApi.Services
         private readonly ICurrencyLookup _currencyLookup;
         private readonly ILogger _logger;
         private readonly IClassifiedAdRepository _repository;
+        private readonly IUnitOfWork _uow;
 
-        public ClassifiedAdAppService(IClassifiedAdRepository repository, ICurrencyLookup currencyLookup, ILogger logger)
+        public ClassifiedAdAppService(IClassifiedAdRepository repository, ICurrencyLookup currencyLookup, IUnitOfWork uow, ILogger logger)
         {
             _repository = repository;
             _currencyLookup = currencyLookup;
+            _uow = uow;
             _logger = logger;
         }
 
@@ -50,7 +53,8 @@ namespace Marketplace.WebApi.Services
         {
             if (await _repository.ExistsAsync(ClassifiedAdId.FromGuid(cmd.Id))) throw new InvalidOperationException($"Entity with id {cmd.Id} already exists");
             var classifiedAd = new ClassifiedAd(ClassifiedAdId.FromGuid(cmd.Id), UserId.FromGuid(cmd.OwnerId));
-            await _repository.SaveAsync(classifiedAd);
+            await _repository.AddAsync(classifiedAd);
+            await _uow.CommitAsync();
         }
 
         private async Task HandleUpdate(Guid id, Action<ClassifiedAd> action)
@@ -59,7 +63,7 @@ namespace Marketplace.WebApi.Services
             if (classifiedAd == null) throw new InvalidOperationException($"Entity with id {id} does not exist");
 
             action(classifiedAd);
-            await _repository.SaveAsync(classifiedAd);
+            await _uow.CommitAsync();
         }
     }
 }

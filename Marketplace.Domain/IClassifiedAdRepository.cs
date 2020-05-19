@@ -8,6 +8,6 @@ namespace Marketplace.Domain
 
         Task<ClassifiedAd> LoadAsync(ClassifiedAdId id);
 
-        Task SaveAsync(ClassifiedAd entity);
+        Task AddAsync(ClassifiedAd entity);
     }
 }

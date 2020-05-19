@@ -1,5 +1,5 @@
-﻿using System.Threading.Tasks;
-using LamarCodeGeneration;
+﻿using System;
+using System.Threading.Tasks;
 using Marketplace.WebApi.Contracts.V1;
 using Marketplace.WebApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -20,69 +20,38 @@ namespace Marketplace.WebApi.Controllers
             _logger = logger;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post(CreateAdCommand command)
+        private async Task<IActionResult> HandleRequest<T>(T command, Func<T, Task> handler)
         {
-            _logger.Debug("{@Command}", command);
-
-            _logger.Verbose( "Post method - verbose" );
-            _logger.Debug( "Post method - debug" );
-            _logger.Information( "Post method - info" );
-            _logger.Warning( "Post method - warn" );
-            _logger.Error( "Post method - error" );
-            _logger.Fatal( "Post method - fatal" );
-
-            await _appService.HandleAsync(command);
-
-            return Ok();
+            try
+            {
+                _logger.Debug("{@Command}", command);
+                await handler(command);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error handling the request");
+                return new BadRequestObjectResult(new {error = e.Message, stackTrace = e.StackTrace});
+            }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Post(CreateAdCommand command) => await HandleRequest(command, _appService.HandleAsync);
 
         [Route("name")]
         [HttpPut]
-        public async Task<IActionResult> Put(SetTitleCommand command)
-        {
-            _logger.Debug("{@Command}", command);
-
-
-            await _appService.HandleAsync(command);
-
-            return Ok();
-        }
+        public async Task<IActionResult> Put(SetTitleCommand command) => await HandleRequest(command, _appService.HandleAsync);
 
         [Route("text")]
         [HttpPut]
-        public async Task<IActionResult> Put(UpdateTextCommand command)
-        {
-            _logger.Debug("{@Command}", command);
-
-
-            await _appService.HandleAsync(command);
-
-            return Ok();
-        }
+        public async Task<IActionResult> Put(UpdateTextCommand command) => await HandleRequest(command, _appService.HandleAsync);
 
         [Route("price")]
         [HttpPut]
-        public async Task<IActionResult> Put(UpdatePriceCommand command)
-        {
-            _logger.Debug("{@Command}", command);
-
-
-            await _appService.HandleAsync(command);
-
-            return Ok();
-        }
+        public async Task<IActionResult> Put(UpdatePriceCommand command) => await HandleRequest(command, _appService.HandleAsync);
 
         [Route("publish")]
         [HttpPut]
-        public async Task<IActionResult> Put(RequestToPublishCommand command)
-        {
-            _logger.Debug("{@Command}", command);
-
-
-            await _appService.HandleAsync(command);
-
-            return Ok();
-        }
+        public async Task<IActionResult> Put(RequestToPublishCommand command) => await HandleRequest(command, _appService.HandleAsync);
     }
 }

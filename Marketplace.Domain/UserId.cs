@@ -5,16 +5,15 @@ namespace Marketplace.Domain
 {
     public class UserId : Value<UserId>
     {
-        public Guid Value { get; }
+        private UserId() { }
 
-        internal UserId(Guid value) => Value = value;
+        public UserId(Guid value) => Value = value;
+
+        public Guid Value { get; private set; }
 
         public static UserId FromGuid(Guid value)
         {
-            if (value == default)
-            {
-                throw new ArgumentNullException(nameof(value), $"User ID cannot be empty");
-            }
+            if (value == default) throw new ArgumentNullException(nameof(value), "User ID cannot be empty");
 
             return new UserId(value);
         }

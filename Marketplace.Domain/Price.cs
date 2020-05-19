@@ -4,17 +4,17 @@ namespace Marketplace.Domain
 {
     public class Price : Money
     {
-        private Price(decimal amount, string currency, ICurrencyLookup lookup) : base(amount, currency, lookup)
-        {
-        }
+        private Price() { }
 
-        internal Price(decimal amount, string currencyCode)
+        private Price(decimal amount, string currency, ICurrencyLookup lookup) : base(amount, currency, lookup) { }
+
+        public Price(decimal amount, string currencyCode)
             : base(amount, new CurrencyDetails {CurrencyCode = currencyCode}) { }
 
         public new static Price FromDecimal(decimal amount, string currency, ICurrencyLookup currencyLookup)
         {
             CheckValidity(amount);
-            
+
             return new Price(amount, currency, currencyLookup);
         }
 

@@ -1,15 +1,18 @@
 using Lamar;
 using Marketplace.Domain;
+using Marketplace.Framework;
 using Marketplace.WebApi.Contracts.V1;
 using Marketplace.WebApi.Repositories;
 using Marketplace.WebApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Raven.Client.Documents;
 using Serilog;
 
 namespace Marketplace.WebApi
@@ -62,9 +65,32 @@ namespace Marketplace.WebApi
                               s.WithDefaultConventions();
                           });
 
-            //services.AddScoped<IHandleCommand<CreateAdCommand>,ClassifiedAdAppService>();
-            services.AddScoped<IClassifiedAdRepository, ClassifiedAdRepository>();
             services.AddSingleton<ICurrencyLookup, FixedCurrencyLookup>();
+
+            var store = new DocumentStore
+            {
+                Urls = new[ ] { "http://localhost:8080" },
+                Database = "Marketplace_Ch8",
+                Conventions =
+                            {
+                                FindIdentityProperty = m=>m.Name == "_databaseId"
+                            }
+            };
+            store.Initialize( );
+
+            services.AddScoped( _ => store.OpenAsyncSession( ) );
+            services.AddScoped<IUnitOfWork, RavenDbUnitOfWork>( );
+            services.AddScoped<IClassifiedAdRepository, RavenDbRepositoryImpl>( );
+
+            //const string cString =
+            //    @"Data Source=.\SQL2019;Initial Catalog=Marketplace_Chapter8;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+            //var optionsBuilder = new DbContextOptionsBuilder<ClassifiedAdDbContext>();
+            //optionsBuilder.UseSqlServer(cString, providerOptions => providerOptions.CommandTimeout(60));
+            //services.AddScoped(_ => optionsBuilder.Options);
+            //services.AddScoped<ClassifiedAdDbContext>();
+            //services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+            //services.AddScoped<IClassifiedAdRepository, EfRepositoryImpl>();
+
             services.AddScoped<IApplicationService, ClassifiedAdAppService>();
         }
 
@@ -72,6 +98,8 @@ namespace Marketplace.WebApi
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             Log.Debug($"Configure");
+
+            app.EnsureDatabase();
 
             app.UseCors();
 
