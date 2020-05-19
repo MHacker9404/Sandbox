@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Marketplace.Domain.Events;
 using Marketplace.Framework;
 
 namespace Marketplace.Domain
 {
-    public class ClassifiedAd : Entity
+    public class ClassifiedAd : AggregateRoot<ClassifiedAdId>
     {
         public enum ClassifiedAdState
         {
@@ -16,7 +19,6 @@ namespace Marketplace.Domain
 
         public ClassifiedAd(ClassifiedAdId id, UserId ownerId) => Apply(new ClassifiedAdCreated {Id = id, OwnerId = ownerId});
 
-        public ClassifiedAdId Id { get; private set; }
         public UserId OwnerId { get; private set; }
         public ClassifiedAdTitle Title { get; private set; }
         public ClassifiedAdText Text { get; private set; }
@@ -24,13 +26,16 @@ namespace Marketplace.Domain
 
         public ClassifiedAdState State { get; private set; }
         public UserId ApprovedBy { get; private set; }
+        public List<Picture> Pictures { get; private set; }
 
         protected override void EnsureValidState()
         {
             var valid = Id != null && OwnerId != null && State switch
                                                          {
                                                              ClassifiedAdState.PendingReview => Title != null && Text != null && Price?.Amount > 0
+                                                                                                && Pictures.All(picture => picture.HasCorrectSize())
                                                              , ClassifiedAdState.Active => Title != null && Text != null && Price?.Amount > 0
+                                                                                           && Pictures.All(picture => picture.HasCorrectSize())
                                                                                            && ApprovedBy != null
                                                              , _ => true
                                                          };
@@ -45,6 +50,7 @@ namespace Marketplace.Domain
                     Id = new ClassifiedAdId(e.Id);
                     OwnerId = new UserId(e.OwnerId);
                     State = ClassifiedAdState.Inactive;
+                    Pictures = new List<Picture>();
                     break;
                 case ClassifiedAdTitleChanged e:
                     Title = ClassifiedAdTitle.FromString(e.Title);
@@ -58,6 +64,11 @@ namespace Marketplace.Domain
                 case ClassifiedAdSentForReview e:
                     State = ClassifiedAdState.PendingReview;
                     break;
+                case PictureAdded e:
+                    var picture = new Picture(Apply);
+                    ApplyToEntity(picture, e);
+                    Pictures.Add(picture);
+                    break;
             }
         }
 
@@ -68,5 +79,24 @@ namespace Marketplace.Domain
         public void UpdatePrice(Price price) => Apply(new ClassifiedAdPriceUpdated {Id = Id, Price = price, Currency = price.Currency});
 
         public void RequestToPublish() => Apply(new ClassifiedAdSentForReview {Id = Id});
+
+        public void AddPicture(Uri pictureUri, PictureSize size)
+        {
+            var order = Pictures.Max(p => p.Order) + 1;
+            Apply(new PictureAdded
+                  {
+                      Id = Guid.NewGuid(), ClassifiedAdId = Id, Url = pictureUri.ToString(), Height = size.Height, Width = size.Width, Order = order
+                  });
+        }
+
+        private Picture FindPicture(PictureId id) => Pictures.SingleOrDefault(p => p.Id == id);
+
+        public void ResizePicture(PictureId id, PictureSize size)
+        {
+            var picture = FindPicture(id);
+            if (picture == null) throw new InvalidOleVariantTypeException("Cannot resize a picture that I don't have");
+
+            picture.Resize(size);
+        }
     }
 }
