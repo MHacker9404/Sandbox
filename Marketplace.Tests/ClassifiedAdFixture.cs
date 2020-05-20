@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Marketplace.Domain;
+using Marketplace.Domain.ClassifiedAd;
+using Marketplace.Domain.Shared;
+using Marketplace.Domain.Shared.Exceptions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 

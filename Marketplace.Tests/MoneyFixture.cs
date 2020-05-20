@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Marketplace.Domain;
+using Marketplace.Domain.Shared;
+using Marketplace.Domain.Shared.Exceptions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 

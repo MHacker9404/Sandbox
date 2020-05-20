@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Marketplace.WebApi.Contracts.V1;
+using Marketplace.WebApi.Contracts.V1.ClassifiedAd;
 using Marketplace.WebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;

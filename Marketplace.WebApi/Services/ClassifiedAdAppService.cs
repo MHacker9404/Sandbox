@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Marketplace.Domain;
+using Marketplace.Domain.ClassifiedAd;
+using Marketplace.Domain.Shared;
 using Marketplace.Framework;
 using Marketplace.WebApi.Contracts.V1;
+using Marketplace.WebApi.Contracts.V1.ClassifiedAd;
 using Serilog;
 
 namespace Marketplace.WebApi.Services

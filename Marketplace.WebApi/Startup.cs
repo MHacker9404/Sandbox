@@ -1,13 +1,14 @@
 using Lamar;
-using Marketplace.Domain;
+using Marketplace.Domain.ClassifiedAd;
+using Marketplace.Domain.Shared;
+using Marketplace.Domain.UserProfile;
 using Marketplace.Framework;
-using Marketplace.WebApi.Contracts.V1;
+using Marketplace.WebApi.Infrastructure;
 using Marketplace.WebApi.Repositories;
 using Marketplace.WebApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,7 +45,7 @@ namespace Marketplace.WebApi
         // as well
         public void ConfigureContainer(ServiceRegistry services)
         {
-            Log.Debug($"ConfigureContainer");
+            Log.Debug("ConfigureContainer");
 
             services.AddCors(options => { options.AddDefaultPolicy(builder => { builder.AllowAnyOrigin(); }); });
 
@@ -68,38 +69,32 @@ namespace Marketplace.WebApi
             services.AddSingleton<ICurrencyLookup, FixedCurrencyLookup>();
 
             var store = new DocumentStore
-            {
-                Urls = new[ ] { "http://localhost:8080" },
-                Database = "Marketplace_Ch8",
-                Conventions =
+                        {
+                            Urls = new[] {"http://localhost:8080"}, Database = "Marketplace_Ch9", Conventions =
                             {
-                                FindIdentityProperty = m=>m.Name == "_databaseId"
+                                FindIdentityProperty = m => m.Name == "DbId"
                             }
-            };
-            store.Initialize( );
+                        };
+            store.Initialize();
 
-            services.AddScoped( _ => store.OpenAsyncSession( ) );
-            services.AddScoped<IUnitOfWork, RavenDbUnitOfWork>( );
-            services.AddScoped<IClassifiedAdRepository, RavenDbRepositoryImpl>( );
+            services.AddScoped(_ => store.OpenAsyncSession());
+            services.AddScoped<IUnitOfWork, RavenDbUnitOfWork>();
 
-            //const string cString =
-            //    @"Data Source=.\SQL2019;Initial Catalog=Marketplace_Chapter8;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
-            //var optionsBuilder = new DbContextOptionsBuilder<ClassifiedAdDbContext>();
-            //optionsBuilder.UseSqlServer(cString, providerOptions => providerOptions.CommandTimeout(60));
-            //services.AddScoped(_ => optionsBuilder.Options);
-            //services.AddScoped<ClassifiedAdDbContext>();
-            //services.AddScoped<IUnitOfWork, EfUnitOfWork>();
-            //services.AddScoped<IClassifiedAdRepository, EfRepositoryImpl>();
+            services.AddScoped<IClassifiedAdRepository, ClassifiedAdRepository>();
+            services.AddScoped<ClassifiedAdAppService>();
 
-            services.AddScoped<IApplicationService, ClassifiedAdAppService>();
+            services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+            var purgoMalumClient = new PurgoMalumClient();
+            services.AddScoped(s => new UserProfileAppService(s.GetService<IUserProfileRepository>()
+                                                              , s.GetService<IUnitOfWork>()
+                                                              , text => purgoMalumClient.CheckForProfanity(text).GetAwaiter().GetResult()
+                                                              , s.GetService<ILogger>()));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            Log.Debug($"Configure");
-
-            app.EnsureDatabase();
+            Log.Debug("Configure");
 
             app.UseCors();
 
@@ -115,7 +110,7 @@ namespace Marketplace.WebApi
 
                 app.UseDeveloperExceptionPage();
 
-                var container = (IContainer)app.ApplicationServices;
+                var container = (IContainer) app.ApplicationServices;
                 Log.Debug(container.WhatDidIScan());
                 Log.Debug(container.WhatDoIHave());
             }
