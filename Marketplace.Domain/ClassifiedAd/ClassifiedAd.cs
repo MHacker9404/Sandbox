@@ -43,11 +43,17 @@ namespace Marketplace.Domain.ClassifiedAd
         {
             var valid = Id != null && OwnerId != null && State switch
                                                          {
-                                                             ClassifiedAdState.PendingReview => Title != null && Text != null && Price?.Amount > 0
-                                                                                                && Pictures.All(picture => picture.HasCorrectSize())
-                                                             , ClassifiedAdState.Active => Title != null && Text != null && Price?.Amount > 0
-                                                                                           && Pictures.All(picture => picture.HasCorrectSize())
-                                                                                           && ApprovedBy != null
+                                                             ClassifiedAdState.PendingReview => Title != null && Text != null
+                                                                                                              && Price?.Amount > 0
+                                                                                                              && Pictures.All(
+                                                                                                                  picture => picture
+                                                                                                                      .HasCorrectSize())
+                                                             , ClassifiedAdState.Active => Title != null && Text != null
+                                                                                                         && Price?.Amount > 0
+                                                                                                         && Pictures.All(
+                                                                                                             picture => picture
+                                                                                                                 .HasCorrectSize())
+                                                                                                         && ApprovedBy != null
                                                              , _ => true
                                                          };
             if (!valid) throw new InvalidEntityStateException(this, $"Post-checks failed in state {State}");
@@ -88,7 +94,8 @@ namespace Marketplace.Domain.ClassifiedAd
 
         public void UpdateText(ClassifiedAdText text) => Apply(new ClassifiedAdTextUpdated {Id = Id, Text = text});
 
-        public void UpdatePrice(Price price) => Apply(new ClassifiedAdPriceUpdated {Id = Id, Price = price, Currency = price.Currency});
+        public void UpdatePrice(Price price) =>
+            Apply(new ClassifiedAdPriceUpdated {Id = Id, Price = price, Currency = price.Currency});
 
         public void RequestToPublish() => Apply(new ClassifiedAdSentForReview {Id = Id});
 
@@ -97,7 +104,8 @@ namespace Marketplace.Domain.ClassifiedAd
             var order = Pictures.Max(p => p.Order) + 1;
             Apply(new PictureAdded
                   {
-                      Id = Guid.NewGuid(), ClassifiedAdId = Id, Url = pictureUri.ToString(), Height = size.Height, Width = size.Width, Order = order
+                      Id = Guid.NewGuid(), ClassifiedAdId = Id, Url = pictureUri.ToString(), Height = size.Height, Width = size.Width
+                      , Order = order
                   });
         }
 

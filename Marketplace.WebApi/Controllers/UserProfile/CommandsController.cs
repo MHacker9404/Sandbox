@@ -1,23 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.WebApi.Contracts.V1.UserProfile;
 using Marketplace.WebApi.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
-namespace Marketplace.WebApi.Controllers
+namespace Marketplace.WebApi.Controllers.UserProfile
 {
-    [Route( "api/[controller]" )]
+    [Route( "api/user" )]
     [ApiController]
-    public class UserProfileController : ControllerBase
+    public class CommandsController : ControllerBase
     {
         private readonly UserProfileAppService _appService;
         private readonly ILogger _logger;
 
-        public UserProfileController(UserProfileAppService appService, ILogger logger)
+        public CommandsController(UserProfileAppService appService, ILogger logger)
         {
             _appService = appService;
             _logger = logger;
@@ -41,11 +38,11 @@ namespace Marketplace.WebApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(RegisterUser command) => await HandleRequest(command, _appService.HandleAsync);
 
-        [Route("fullname")]
+        [Route("full-name")]
         [HttpPut]
         public async Task<IActionResult> Put(UpdateUserFullName command) => await HandleRequest(command, _appService.HandleAsync);
 
-        [Route("displayname")]
+        [Route("display-name")]
         [HttpPut]
         public async Task<IActionResult> Put(UpdateUserDisplayName command) => await HandleRequest(command, _appService.HandleAsync);
 

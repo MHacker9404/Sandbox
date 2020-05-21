@@ -8,8 +8,8 @@ namespace Marketplace.Domain.UserProfile
         internal FullName(string fullName) => Value = fullName;
 
         //  serialization
-        protected FullName() { }
-        public string Value { get; }
+        private FullName() { }
+        public string Value { get; private set; }
 
         public static FullName FromString(string fullName)
         {

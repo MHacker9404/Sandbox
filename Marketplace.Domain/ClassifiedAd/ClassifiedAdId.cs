@@ -5,11 +5,10 @@ namespace Marketplace.Domain.ClassifiedAd
 {
     public class ClassifiedAdId : Value<ClassifiedAdId>
     {
-        public ClassifiedAdId(Guid value) => Value = value;
+        private ClassifiedAdId() { }
+        internal ClassifiedAdId(Guid value) => Value = value;
 
         public Guid Value { get; private set; }
-
-        private ClassifiedAdId() { }
 
         public static ClassifiedAdId FromGuid(Guid value)
         {

@@ -6,10 +6,9 @@ namespace Marketplace.Domain.ClassifiedAd
     public class Price : Money
     {
         private Price() { }
+        internal Price(decimal amount, string currency, ICurrencyLookup lookup) : base(amount, currency, lookup) { }
 
-        private Price(decimal amount, string currency, ICurrencyLookup lookup) : base(amount, currency, lookup) { }
-
-        public Price(decimal amount, string currencyCode)
+        internal Price(decimal amount, string currencyCode)
             : base(amount, new CurrencyDetails {CurrencyCode = currencyCode}) { }
 
         public new static Price FromDecimal(decimal amount, string currency, ICurrencyLookup currencyLookup)

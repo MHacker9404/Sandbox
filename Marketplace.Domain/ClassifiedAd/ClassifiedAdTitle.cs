@@ -6,10 +6,10 @@ namespace Marketplace.Domain.ClassifiedAd
 {
     public class ClassifiedAdTitle : Value<ClassifiedAdTitle>
     {
-        public ClassifiedAdTitle(string value) => Value = value;
         private ClassifiedAdTitle() { }
+        internal ClassifiedAdTitle(string value) => Value = value;
 
-        public string Value { get; }
+        public string Value { get; private set; }
 
         public static ClassifiedAdTitle FromString(string title)
         {

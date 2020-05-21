@@ -7,7 +7,7 @@ namespace Marketplace.Domain.Shared
     {
         private UserId() { }
 
-        public UserId(Guid value) => Value = value;
+        internal UserId(Guid value) => Value = value;
 
         public Guid Value { get; private set; }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Marketplace.Domain.Shared;
 using Marketplace.Domain.Shared.Exceptions;
 using Marketplace.Framework;
@@ -11,8 +10,8 @@ namespace Marketplace.Domain.UserProfile
         internal DisplayName(string displayName) => Value = displayName;
 
         //  serialization
-        protected DisplayName() { }
-        public string Value { get; }
+        private DisplayName() { }
+        public string Value { get; private set; }
 
         public static DisplayName FromString(string displayName, CheckTextForProfanity hasProfanity)
         {

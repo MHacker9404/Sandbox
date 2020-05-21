@@ -5,11 +5,10 @@ namespace Marketplace.Domain.ClassifiedAd
 {
     public class PictureId : Value<PictureId>
     {
-        public PictureId(Guid value) => Value = value;
-
         private PictureId() { }
+        internal PictureId(Guid value) => Value = value;
 
-        public Guid Value { get; }
+        public Guid Value { get; private set; }
 
         public static PictureId FromGuid(Guid value)
         {

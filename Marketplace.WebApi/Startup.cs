@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using Raven.Client.Documents;
 using Serilog;
 
@@ -70,9 +71,17 @@ namespace Marketplace.WebApi
 
             var store = new DocumentStore
                         {
-                            Urls = new[] {"http://localhost:8080"}, Database = "Marketplace_Ch9", Conventions =
+                            Urls = new[] {"http://localhost:8080"}, Database = "Marketplace_Ch9"
+                            , Conventions =
                             {
-                                FindIdentityProperty = m => m.Name == "DbId"
+                                FindIdentityProperty = m => m.Name == "DbId", CustomizeJsonDeserializer = serializer =>
+                                                                                                          {
+                                                                                                              serializer.ContractResolver =
+                                                                                                                  new PrivateResolver();
+                                                                                                              serializer.ConstructorHandling =
+                                                                                                                  ConstructorHandling
+                                                                                                                      .AllowNonPublicDefaultConstructor;
+                                                                                                          }
                             }
                         };
             store.Initialize();

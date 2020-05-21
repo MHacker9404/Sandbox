@@ -31,9 +31,9 @@ namespace Marketplace.Domain.Shared
             Currency = currency;
         }
 
-        public CurrencyDetails Currency { get; }
+        public CurrencyDetails Currency { get; private set; }
 
-        public decimal Amount { get; }
+        public decimal Amount { get; private set; }
 
         public Money Add(Money right)
         {
