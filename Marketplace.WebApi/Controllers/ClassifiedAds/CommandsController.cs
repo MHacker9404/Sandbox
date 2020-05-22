@@ -25,7 +25,7 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds
         [HttpPost]
         public async Task<IActionResult> Post(CreateAdCommand command) => await RequestHandler.HandleCommand(command, _appService.HandleAsync, _logger);
 
-        [Route("name")]
+        [Route("title")]
         [HttpPut]
         public async Task<IActionResult> Put(SetTitleCommand command) => await RequestHandler.HandleCommand(command, _appService.HandleAsync, _logger);
 

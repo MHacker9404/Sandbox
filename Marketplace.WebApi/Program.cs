@@ -17,22 +17,21 @@ namespace Marketplace.WebApi
         {
             //Build Config
             var currentEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            var configuration = new ConfigurationBuilder( )
-                                .AddJsonFile( "appsettings.json" )
-                                .AddJsonFile( $"appsettings.{currentEnv}.json", optional: true )
-                                .AddEnvironmentVariables( )
-                                .Build( );
+            var configuration = new ConfigurationBuilder()
+                                .AddJsonFile("appsettings.json", false, false)
+                                .AddJsonFile($"appsettings.{currentEnv}.json", optional: true, false)
+                                .AddEnvironmentVariables()
+                                .Build();
 
             //Configure logger
-            Log.Logger = new LoggerConfiguration( )
-                         .ReadFrom.Configuration( configuration )
+            Log.Logger = new LoggerConfiguration()
+                         .ReadFrom.Configuration(configuration)
                          .Enrich.WithMachineName()
                          .Enrich.FromLogContext()
                          .Enrich.WithThreadId()
                          .Enrich.WithCorrelationId()
                          .Enrich.WithCaller()
-                         .CreateLogger( );
-
+                         .CreateLogger();
 
             SelfLog.Enable(msg => Debug.WriteLine(msg));
             SelfLog.Enable(Console.Error);

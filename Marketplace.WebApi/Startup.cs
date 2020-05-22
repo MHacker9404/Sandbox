@@ -1,3 +1,5 @@
+using System;
+using EventStore.ClientAPI;
 using Lamar;
 using Marketplace.Domain.ClassifiedAd;
 using Marketplace.Domain.Shared;
@@ -16,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Raven.Client.Documents;
 using Serilog;
+using ILogger = Serilog.ILogger;
 
 namespace Marketplace.WebApi
 {
@@ -69,33 +72,41 @@ namespace Marketplace.WebApi
 
             services.AddSingleton<ICurrencyLookup, FixedCurrencyLookup>();
 
-            var store = new DocumentStore
-                        {
-                            Urls = new[] {"http://localhost:8080"}, Database = "Marketplace_Ch9"
-                            , Conventions =
-                            {
-                                FindIdentityProperty = m => m.Name == "DbId", CustomizeJsonDeserializer = serializer =>
-                                                                                                          {
-                                                                                                              serializer.ContractResolver =
-                                                                                                                  new PrivateResolver();
-                                                                                                              serializer.ConstructorHandling =
-                                                                                                                  ConstructorHandling
-                                                                                                                      .AllowNonPublicDefaultConstructor;
-                                                                                                          }
-                            }
-                        };
-            store.Initialize();
+            //var store = new DocumentStore
+            //            {
+            //                Urls = new[] {"http://localhost:8080"}, Database = "Marketplace_Ch10"
+            //                , Conventions =
+            //                {
+            //                    FindIdentityProperty = m => m.Name == "DbId", CustomizeJsonDeserializer = serializer =>
+            //                                                                                              {
+            //                                                                                                  serializer.ContractResolver =
+            //                                                                                                      new PrivateResolver();
+            //                                                                                                  serializer.ConstructorHandling =
+            //                                                                                                      ConstructorHandling
+            //                                                                                                          .AllowNonPublicDefaultConstructor;
+            //                                                                                              }
+            //                }
+            //            };
+            //store.Initialize();
 
-            services.AddScoped(_ => store.OpenAsyncSession());
-            services.AddScoped<IUnitOfWork, RavenDbUnitOfWork>();
+            //services.AddScoped(_ => store.OpenAsyncSession());
+            //services.AddScoped<IUnitOfWork, RavenDbUnitOfWork>();
+
+            var eventStoreConnection = EventStoreConnection.Create(Configuration["eventStore:connectionString"]
+                                                                   , ConnectionSettings.Create().KeepReconnecting()
+                                                                   , Configuration["ApplicationName"]);
+            var eventStore = new EsAggregateStore(eventStoreConnection);
+            services.AddSingleton(eventStoreConnection);
+            services.AddSingleton<IAggregateStore>(eventStore);
+            services.AddSingleton<IHostedService, EventStoreHostedService>();
 
             services.AddScoped<IClassifiedAdRepository, ClassifiedAdRepository>();
             services.AddScoped<ClassifiedAdAppService>();
 
             services.AddScoped<IUserProfileRepository, UserProfileRepository>();
             var purgoMalumClient = new PurgoMalumClient();
-            services.AddScoped(s => new UserProfileAppService(s.GetService<IUserProfileRepository>()
-                                                              , s.GetService<IUnitOfWork>()
+            services.AddScoped(s => new UserProfileAppService(s.GetService<IAggregateStore>()
+                                                              //, s.GetService<IUnitOfWork>()
                                                               , text => purgoMalumClient.CheckForProfanity(text).GetAwaiter().GetResult()
                                                               , s.GetService<ILogger>()));
         }
