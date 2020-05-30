@@ -24,12 +24,27 @@ namespace Marketplace.WebApi.Infrastructure
             }
         }
 
-        internal static async Task<IActionResult> HandleQuery<TModel>(Func<Task<TModel>> query, ILogger logger)
+        internal static async Task<IActionResult> HandleQueryAsync<TModel>(Func<Task<TModel>> query, ILogger logger)
         {
             try
             {
                 logger.Debug("{@Command}", query);
                 return new OkObjectResult(await query());
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error handling the query");
+                return new BadRequestObjectResult(new {error = e.Message, stackTrace = e.StackTrace});
+            }
+        }
+
+        internal static IActionResult HandleQuery<TModel>(Func<TModel> query, ILogger logger)
+        {
+            try
+            {
+                logger.Debug("{@Command}", query);
+                var result = query();
+                return new OkObjectResult(result);
             }
             catch (Exception e)
             {

@@ -14,15 +14,9 @@ namespace Marketplace.WebApi.Services
         private readonly IAggregateStore _eventStore;
         private readonly ILogger _logger;
 
-        private readonly IUserProfileRepository _repository;
-        //private readonly IUnitOfWork _uow;
-
-        //public UserProfileAppService(IUserProfileRepository repository, IUnitOfWork uow, CheckTextForProfanity checkText, ILogger logger)
         public UserProfileAppService(IAggregateStore eventStore, CheckTextForProfanity checkText, ILogger logger)
         {
-            //_repository = repository;
             _eventStore = eventStore;
-            //_uow = uow;
             _checkText = checkText;
             _logger = logger;
         }
@@ -57,12 +51,6 @@ namespace Marketplace.WebApi.Services
 
         private async Task HandleCreate(RegisterUser cmd)
         {
-            //if (await _repository.ExistsAsync(UserId.FromGuid(cmd.UserId))) throw new InvalidOperationException($"Entity with id {cmd.UserId} already exists");
-            //var userProfile = new UserProfile(UserId.FromGuid(cmd.UserId)
-            //                                  , FullName.FromString(cmd.FullName)
-            //                                  , DisplayName.FromString(cmd.DisplayName, _checkText));
-            //await _repository.AddAsync(userProfile);
-            //await _uow.CommitAsync();
             if (await _eventStore.ExistsAsync<UserProfile, UserId>(UserId.FromGuid(cmd.UserId)))
             {
                 throw new InvalidOperationException($"Entity with id {cmd.UserId} already exists");
@@ -74,14 +62,6 @@ namespace Marketplace.WebApi.Services
             await _eventStore.SaveAsync<UserProfile, UserId>(userProfile);
         }
 
-        private async Task HandleUpdate(Guid id, Action<UserProfile> action)
-        {
-            //var userProfile = await _repository.LoadAsync(UserId.FromGuid(id));
-            //if (userProfile == null) throw new InvalidOperationException($"Entity with id {id} does not exist");
-
-            //action(userProfile);
-            //await _uow.CommitAsync();
-            await this.HandleUpdateAsync(_eventStore, UserId.FromGuid(id), action);
-        }
+        private async Task HandleUpdate(Guid id, Action<UserProfile> action) => await this.HandleUpdateAsync(_eventStore, UserId.FromGuid(id), action);
     }
 }

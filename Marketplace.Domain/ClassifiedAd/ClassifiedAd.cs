@@ -23,13 +23,6 @@ namespace Marketplace.Domain.ClassifiedAd
 
         private ClassifiedAd() { }
 
-        //  for persistence in RavenDB
-        private string DbId
-        {
-            get => $"ClassifiedAd/{Id.Value}";
-            set { }
-        }
-
         public UserId OwnerId { get; private set; }
         public ClassifiedAdTitle Title { get; private set; }
         public ClassifiedAdText Text { get; private set; }
@@ -68,7 +61,6 @@ namespace Marketplace.Domain.ClassifiedAd
                     OwnerId = new UserId(e.OwnerId);
                     State = ClassifiedAdState.Inactive;
                     Pictures = new List<Picture>();
-                    //  required for persistence
                     break;
                 case ClassifiedAdTitleChanged e:
                     Title = ClassifiedAdTitle.FromString(e.Title);
@@ -81,6 +73,10 @@ namespace Marketplace.Domain.ClassifiedAd
                     break;
                 case ClassifiedAdSentForReview e:
                     State = ClassifiedAdState.PendingReview;
+                    break;
+                case ClassifiedAdPublished e:
+                    ApprovedBy = new UserId( e.ApprovedBy );
+                    State = ClassifiedAdState.Active;
                     break;
                 case PictureAdded e:
                     var picture = new Picture(Apply);
@@ -118,5 +114,13 @@ namespace Marketplace.Domain.ClassifiedAd
 
             picture.Resize(size);
         }
+
+        public void Publish( UserId userId ) =>
+            Apply( new ClassifiedAdPublished
+                   {
+                       Id = Id,
+                       ApprovedBy = userId,
+                       OwnerId = OwnerId
+                   } );
     }
 }

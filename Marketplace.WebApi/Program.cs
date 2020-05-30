@@ -11,7 +11,7 @@ using Serilog.Debugging;
 
 namespace Marketplace.WebApi
 {
-    public class Program
+    public static class Program
     {
         public static async Task Main(string[] args)
         {
@@ -33,8 +33,8 @@ namespace Marketplace.WebApi
                          .Enrich.WithCaller()
                          .CreateLogger();
 
-            SelfLog.Enable(msg => Debug.WriteLine(msg));
-            SelfLog.Enable(Console.Error);
+            //SelfLog.Enable(msg => Debug.WriteLine(msg));
+            //SelfLog.Enable(Console.Error);
 
             try
             {

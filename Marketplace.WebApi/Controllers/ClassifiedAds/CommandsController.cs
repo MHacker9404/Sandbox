@@ -37,8 +37,12 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds
         [HttpPut]
         public async Task<IActionResult> Put(UpdatePriceCommand command) => await RequestHandler.HandleCommand( command, _appService.HandleAsync, _logger );
 
-        [Route("publish")]
+        [Route("request-to-publish")]
         [HttpPut]
         public async Task<IActionResult> Put(RequestToPublishCommand command) => await RequestHandler.HandleCommand( command, _appService.HandleAsync, _logger );
+
+        [Route("publish")]
+        [HttpPut]
+        public async Task<IActionResult> Put(PublishCommand command) => await RequestHandler.HandleCommand( command, _appService.HandleAsync, _logger );
     }
 }

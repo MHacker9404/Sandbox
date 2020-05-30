@@ -21,6 +21,6 @@ namespace Marketplace.Domain.UserProfile
             return new DisplayName(displayName);
         }
 
-        public static implicit operator string(DisplayName displayName) => displayName.Value;
+        public static implicit operator string(DisplayName displayName) => displayName?.Value;
     }
 }

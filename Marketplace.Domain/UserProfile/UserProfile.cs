@@ -1,5 +1,4 @@
-﻿using System;
-using Marketplace.Domain.Shared;
+﻿using Marketplace.Domain.Shared;
 using Marketplace.Domain.UserProfile.Events;
 using Marketplace.Framework;
 
@@ -14,6 +13,8 @@ namespace Marketplace.Domain.UserProfile
                   });
 
         //  for persistence in RavenDB
+        private UserProfile() { }
+
         private string DbId
         {
             get => $"UserProfile/{Id.Value}";
