@@ -1,61 +1,43 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Domain.UserProfile.Events;
-using Marketplace.Framework;
 using Marketplace.WebApi.Controllers.UserProfile.ReadModels;
+using Raven.Client.Documents.Session;
 using Serilog;
 
 namespace Marketplace.WebApi.Projections
 {
-    public class UserDetailsProjection : IProjection
+    public class UserDetailsProjection : RavenDbProjection<UserDetails>
     {
-        private readonly ILogger _logger;
-        private readonly HashSet<UserDetails> _users;
+        public UserDetailsProjection(Func<IAsyncDocumentSession> getSession, ILogger logger) : base(getSession, logger) { }
 
-        public UserDetailsProjection( HashSet<UserDetails> users, ILogger logger )
+        public override Task Project(object evt)
         {
-            _users = users;
-            _logger = logger;
+            _logger.Debug($"Projecting event {evt.GetType().Name}");
+            return evt switch
+                   {
+                       UserRegistered e => Create(async () => new UserDetails
+                                                              {
+                                                                  Id = e.UserId.ToString()
+                                                                  ,UserId = e.UserId
+                                                                  , DisplayName = e.DisplayName
+                                                                  , FullName = e.FullName
+                                                              })
+                       , UserDisplayNameUpdated e => UpdateOne(e.UserId, user => user.DisplayName = e.DisplayName)
+                       , ProfilePhotoUploaded e => UpdateOne(e.UserId, user => user.PhotoUrl = e.PhotoUrl)
+                       , _ => Task.CompletedTask
+                   };
         }
 
-        public Task Project( object evt )
-        {
-            _logger.Debug( $"Projecting event {evt.GetType( ).Name}" );
-            switch ( evt )
-            {
-                case UserRegistered e:
-                    if ( _users.SingleOrDefault( user => user.UserId == e.UserId ) == null )
-                    {
-                        _users.Add( new UserDetails
-                        {
-                            UserId = e.UserId,
-                            DisplayName = e.DisplayName
-                        } );
-                    }
-                    break;
+        //private void UpdateItem(Guid id, Action<UserDetails> action)
+        //{
+        //    var user = _users.SingleOrDefault(u => u.UserId == id);
+        //    if (user != null) action(user);
+        //}
 
-                case UserDisplayNameUpdated e:
-                    UpdateItem( e.UserId, user => user.DisplayName = e.DisplayName );
-                    break;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private void UpdateItem( Guid id, Action<UserDetails> action )
-        {
-            var user = _users.SingleOrDefault(u => u.UserId == id);
-            if (user != null)
-            {
-                action(user);
-            }
-        }
-
-        private void UpdateItem( Guid eUserId, Func<object, object> func )
-        {
-            throw new NotImplementedException( );
-        }
+        //private void UpdateItem(Guid eUserId, Func<object, object> func)
+        //{
+        //    throw new NotImplementedException();
+        //}
     }
 }

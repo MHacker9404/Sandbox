@@ -37,20 +37,5 @@ namespace Marketplace.WebApi.Infrastructure
                 return new BadRequestObjectResult(new {error = e.Message, stackTrace = e.StackTrace});
             }
         }
-
-        internal static IActionResult HandleQuery<TModel>(Func<TModel> query, ILogger logger)
-        {
-            try
-            {
-                logger.Debug("{@Command}", query);
-                var result = query();
-                return new OkObjectResult(result);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error handling the query");
-                return new BadRequestObjectResult(new {error = e.Message, stackTrace = e.StackTrace});
-            }
-        }
     }
 }

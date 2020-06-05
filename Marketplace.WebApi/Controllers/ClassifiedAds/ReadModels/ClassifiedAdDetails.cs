@@ -8,6 +8,7 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds.ReadModels
 {
     public class ClassifiedAdDetails
     {
+        public string Id { get; set; }
         public Guid ClassifiedAdId { get; set; }
         public Guid SellerId { get; set; }
         public string Title { get; set; }
@@ -17,5 +18,10 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds.ReadModels
         public string SellersDisplayName { get; set; }
         public string SellersPhotoUrl { get; set; }
         public string[] PhotoUrls { get; set; }
+        private string DbId
+        {
+            get => $"{GetType().Name}/{Id}";
+            set { }
+        }
     }
 }

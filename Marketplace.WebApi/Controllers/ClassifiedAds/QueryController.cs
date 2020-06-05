@@ -16,12 +16,12 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds
     [ApiController]
     public class QueryController : ControllerBase
     {
-        private readonly HashSet<ClassifiedAdDetails> _details;
+        private readonly IAsyncDocumentSession _session;
         private readonly ILogger _logger;
 
-        public QueryController(HashSet<ClassifiedAdDetails> details, ILogger logger)
+        public QueryController(IAsyncDocumentSession session, ILogger logger)
         {
-            _details = details;
+            _session = session;
             _logger = logger;
         }
 
@@ -38,6 +38,6 @@ namespace Marketplace.WebApi.Controllers.ClassifiedAds
         //[ProducesResponseType( (int)HttpStatusCode.NotFound )]
         //public async Task<IActionResult> Get([FromQuery] GetPublishedClassifiedAd model) => await RequestHandler.HandleQuery(() => _session.Query(model), _logger);
         [HttpGet]
-        public IActionResult Get([FromQuery] GetPublishedClassifiedAd request) => RequestHandler.HandleQuery(() => _details.Query(request), _logger);
+        public Task<IActionResult> Get([FromQuery] GetPublishedClassifiedAd request) => RequestHandler.HandleQueryAsync(() => _session.Query(request), _logger);
     }
 }

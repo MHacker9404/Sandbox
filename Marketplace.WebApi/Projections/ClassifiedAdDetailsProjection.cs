@@ -1,80 +1,51 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Domain.ClassifiedAd.Events;
 using Marketplace.Domain.UserProfile.Events;
-using Marketplace.Framework;
 using Marketplace.WebApi.Controllers.ClassifiedAds.ReadModels;
+using Raven.Client.Documents.Session;
 using Serilog;
 using ClassifiedAdPublished = Marketplace.WebApi.Projections.Upcasts.ClassifiedAdPublished;
 
 namespace Marketplace.WebApi.Projections
 {
-    public class ClassifiedAdDetailsProjection : IProjection
+    public class ClassifiedAdDetailsProjection : RavenDbProjection<ClassifiedAdDetails>
     {
-        private readonly HashSet<ClassifiedAdDetails> _details;
-        private readonly Func<Guid, string> _getUserDisployName;
+        private readonly Func<Guid, Task<string>> _getUserDisployName;
         private readonly ILogger _logger;
 
-        public ClassifiedAdDetailsProjection(HashSet<ClassifiedAdDetails> details, ILogger logger, Func<Guid, string> getUserDisployName)
+        public ClassifiedAdDetailsProjection(Func<IAsyncDocumentSession> getSession, ILogger logger, Func<Guid, Task<string>> getUserDisployName)
+            : base(getSession, logger)
         {
-            _details = details;
             _logger = logger;
             _getUserDisployName = getUserDisployName;
         }
 
-        public Task Project(object evt)
+        public override Task Project(object evt)
         {
             _logger.Debug($"Projecting event {evt.GetType().Name}");
-            switch (evt)
-            {
-                case ClassifiedAdCreated e:
-                    if (_details.SingleOrDefault(detail => detail.ClassifiedAdId == e.Id) == null)
-                        _details.Add(new ClassifiedAdDetails
-                                     {
-                                         ClassifiedAdId = e.Id, SellerId = e.OwnerId, SellersDisplayName = _getUserDisployName(e.OwnerId)
-                                     });
-                    break;
-
-                case ClassifiedAdTitleChanged e:
-                    UpdateItem(e.Id, ad => ad.Title = e.Title);
-                    break;
-
-                case ClassifiedAdTextUpdated e:
-                    UpdateItem(e.Id, ad => ad.Description = e.Text);
-                    break;
-
-                case ClassifiedAdPriceUpdated e:
-                    UpdateItem(e.Id
-                               , ad =>
-                                 {
-                                     ad.Price = e.Price;
-                                     ad.CurrencyCode = e.Currency;
-                                 });
-                    break;
-
-                case ClassifiedAdPublished e:
-                    UpdateItem(e.Id, ad => ad.SellersPhotoUrl = e.SellersPhotoUrl);
-                    break;
-
-                case UserDisplayNameUpdated e:
-                    UpdateMultipleItems(ad => ad.SellerId == e.UserId, ad => ad.SellersDisplayName = e.DisplayName);
-                    break;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private void UpdateMultipleItems(Func<ClassifiedAdDetails, bool> pred, Action<ClassifiedAdDetails> action)
-        {
-            foreach (var detail in _details.Where(pred)) action(detail);
-        }
-
-        private void UpdateItem(Guid id, Action<ClassifiedAdDetails> action)
-        {
-            var detail = _details.SingleOrDefault(d => d.ClassifiedAdId == id);
-            if (detail != null) action(detail);
+            return evt switch
+                   {
+                       ClassifiedAdCreated e =>
+                       Create(async () =>
+                                  new ClassifiedAdDetails
+                                  {
+                                      Id = e.Id.ToString(), ClassifiedAdId = e.Id, SellerId = e.OwnerId
+                                      , SellersDisplayName = await _getUserDisployName(e.OwnerId)
+                                  })
+                       , ClassifiedAdTitleChanged e => UpdateOne(e.Id, ad => ad.Title = e.Title)
+                       , ClassifiedAdTextUpdated e => UpdateOne(e.Id, ad => ad.Description = e.Text)
+                       , ClassifiedAdPriceUpdated e => UpdateOne(e.Id
+                                                                 , ad =>
+                                                                   {
+                                                                       ad.Price = e.Price;
+                                                                       ad.CurrencyCode = e.Currency;
+                                                                   })
+                       , UserDisplayNameUpdated e => UpdateWhere(user => user.SellerId == e.UserId
+                                                                 , ad => ad.SellersDisplayName = e.DisplayName)
+                       , ClassifiedAdPublished e => UpdateOne(e.Id, ad => ad.SellersPhotoUrl = e.SellersPhotoUrl)
+                       , _ => Task.CompletedTask
+                   };
         }
     }
 }

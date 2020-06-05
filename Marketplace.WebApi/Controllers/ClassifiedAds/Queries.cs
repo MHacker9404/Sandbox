@@ -1,17 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Marketplace.Domain.ClassifiedAd;
-using Marketplace.Domain.UserProfile;
 using Marketplace.WebApi.Controllers.ClassifiedAds.QueryModels;
 using Marketplace.WebApi.Controllers.ClassifiedAds.ReadModels;
 using Raven.Client.Documents;
 using Raven.Client.Documents.Linq;
-using Raven.Client.Documents.Queries;
 using Raven.Client.Documents.Session;
-using Raven.Client.Documents.Smuggler;
 
-namespace Marketplace.WebApi.Services
+namespace Marketplace.WebApi.Controllers.ClassifiedAds
 {
     public static class Queries
     {
@@ -42,8 +37,8 @@ namespace Marketplace.WebApi.Services
         //                ClassifiedAdId = ad.Id.Value, Title = ad.Title.Value, Description = ad.Text.Value, Price = ad.Price.Amount
         //                , CurrencyCode = ad.Price.Currency.CurrencyCode, SellersDisplayName = user.DisplayName.Value
         //            }).SingleAsync();
-        public static ClassifiedAdDetails Query(this HashSet<ClassifiedAdDetails> items, GetPublishedClassifiedAd query) =>
-            items.FirstOrDefault(ad => ad.ClassifiedAdId == query.ClassifiedAdId);
+        public static Task<ClassifiedAdDetails> Query(this IAsyncDocumentSession session, GetPublishedClassifiedAd query) =>
+            session.LoadAsync<ClassifiedAdDetails>(query.ClassifiedAdId.ToString());
 
         private static Task<List<T>> PagedList<T>(this IRavenQueryable<T> query, int page, int pageSize) =>
             query.Skip(page * pageSize).Take(pageSize).ToListAsync();

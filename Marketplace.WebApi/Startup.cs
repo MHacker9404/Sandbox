@@ -1,16 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using EventStore.ClientAPI;
 using Lamar;
-using Marketplace.Domain.ClassifiedAd;
 using Marketplace.Domain.Shared;
-using Marketplace.Domain.UserProfile;
 using Marketplace.Framework;
-using Marketplace.WebApi.Controllers.ClassifiedAds.ReadModels;
+using Marketplace.WebApi.Controllers.UserProfile;
 using Marketplace.WebApi.Infrastructure;
 using Marketplace.WebApi.Projections;
-using Marketplace.WebApi.Repositories;
 using Marketplace.WebApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -19,6 +14,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
+using Raven.Client.Documents;
+using Raven.Client.Documents.Session;
+using Raven.Client.ServerWide;
+using Raven.Client.ServerWide.Operations;
 using Serilog;
 using ILogger = Serilog.ILogger;
 
@@ -51,49 +51,53 @@ namespace Marketplace.WebApi
                               s.WithDefaultConventions();
                           });
 
-            var users = new HashSet<UserProfile>();
-            services.AddSingleton(users);
-            services.AddSingleton<UserDetailsProjection>( );
+            services.AddSingleton<ICurrencyLookup, FixedCurrencyLookup>();
 
-            services.AddSingleton<ICurrencyLookup, FixedCurrencyLookup>( );
+            //  EventStore
+            var eventStoreConnection = EventStoreConnection.Create(Configuration["eventStore:connectionString"]
+                                                                   , ConnectionSettings.Create().KeepReconnecting()
+                                                                   , Configuration["ApplicationName"]);
+            services.AddSingleton(eventStoreConnection);
+            var eventStore = new EsAggregateStore(eventStoreConnection);
+            services.AddSingleton<IAggregateStore>(eventStore);
 
-            var eventStoreConnection = EventStoreConnection.Create( Configuration[ "eventStore:connectionString" ]
-                                                                   , ConnectionSettings.Create( ).KeepReconnecting( )
-                                                                   , Configuration[ "ApplicationName" ] );
-            services.AddSingleton( eventStoreConnection );
-            services.AddSingleton<IAggregateStore, EsAggregateStore>( );
+            //  RavenDB
+            var documentStore = ConfigureRavenDb(Configuration.GetSection("ravenDb"));
+            Func<IAsyncDocumentSession> getSession = () => documentStore.OpenAsyncSession();
+            services.AddSingleton(getSession);
+            //services.AddSingleton(_ => getSession());
 
-            string GetUserPhoto(Guid userId) => users.FirstOrDefault(u => u.Id == userId)?.PhotoUrl;
+            services.AddSingleton<ClassifiedAdAppService>();
 
-            services.AddSingleton(s => new ClassifiedAdUpcasterProjection(s.GetService<IEventStoreConnection>(), GetUserPhoto));
+            var pClient = new PurgoMalumClient();
+            services.AddSingleton<CheckTextForProfanity>(text => pClient.CheckForProfanity(text));
+            services.AddSingleton<UserProfileAppService>();
 
-            var details = new HashSet<ClassifiedAdDetails>( );
-            services.AddSingleton( details );
-            string GetUserDisplayName( Guid userId )
-            {
-                var result = users.SingleOrDefault(user => user.Id == userId);
-                return result?.DisplayName;
-            }
-            services.AddSingleton( (Func<Guid, string>)GetUserDisplayName );
-            services.AddSingleton<ClassifiedAdDetailsProjection>( );
-            services.AddSingleton( s => new ProjectionManager( eventStoreConnection
-                                                              , new IProjection[ ]
-                                                                {
+            services.AddSingleton<ICheckpointStore>(s =>
+                                                        new RavenDbCheckpointStore(getSession
+                                                                                   , s.GetService<ILogger>()));
+
+            services.AddSingleton(s => new ClassifiedAdDetailsProjection(s.GetService<Func<IAsyncDocumentSession>>()
+                                                                         , s.GetService<ILogger>()
+                                                                         , async userId =>
+                                                                               (await getSession.GetUserDetailsAsync(userId))?.DisplayName));
+            services.AddSingleton(s => new ClassifiedAdUpcasterProjection(s.GetService<IEventStoreConnection>()
+                                                                          , async userId =>
+                                                                                (await getSession.GetUserDetailsAsync(userId))?.PhotoUrl
+                                                                          , s.GetService<ILogger>()));
+            services.AddSingleton<UserDetailsProjection>();
+
+            services.AddSingleton(s => new ProjectionManager(eventStoreConnection
+                                                             , new IProjection[]
+                                                               {
                                                                    s.GetService<ClassifiedAdDetailsProjection>()
-                                                                   , s.GetService<UserDetailsProjection>()
                                                                    , s.GetService<ClassifiedAdUpcasterProjection>()
-                                                                }
-                                                              , s.GetService<ILogger>( ) ) );
-            services.AddSingleton<IHostedService, EventStoreHostedService>( );
+                                                                   , s.GetService<UserDetailsProjection>()
+                                                               }
+                                                             , s.GetService<ILogger>()
+                                                             , s.GetService<ICheckpointStore>()));
 
-            services.AddScoped<IClassifiedAdRepository, ClassifiedAdRepository>( );
-            services.AddScoped<ClassifiedAdAppService>( );
-
-            services.AddScoped<IUserProfileRepository, UserProfileRepository>( );
-            var purgoMalumClient = new PurgoMalumClient( );
-            services.AddScoped( s => new UserProfileAppService( s.GetService<IAggregateStore>( )
-                                                               , text => purgoMalumClient.CheckForProfanity( text ).GetAwaiter( ).GetResult( )
-                                                               , s.GetService<ILogger>( ) ) );
+            services.AddSingleton<IHostedService, EventStoreHostedService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -122,6 +126,30 @@ namespace Marketplace.WebApi
 
             app.UseRouting();
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+        }
+
+        private static IDocumentStore ConfigureRavenDb(IConfiguration configuration)
+        {
+            var store = new DocumentStore
+                        {
+                            Urls = new[] {configuration["server"]}, Database = configuration["database"]
+                            , Conventions =
+                            {
+                                FindIdentityProperty = m => m.Name == "DbId"
+                                , CustomizeJsonDeserializer = serializer =>
+                                                              {
+                                                                  serializer.ContractResolver = new PrivateResolver();
+                                                                  serializer.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
+                                                              }
+                            }
+                        };
+            store.Initialize();
+            var record = store.Maintenance.Server.Send(new GetDatabaseRecordOperation(store.Database));
+            if (record == null)
+                store.Maintenance.Server.Send(
+                    new CreateDatabaseOperation(new DatabaseRecord(store.Database)));
+
+            return store;
         }
     }
 }

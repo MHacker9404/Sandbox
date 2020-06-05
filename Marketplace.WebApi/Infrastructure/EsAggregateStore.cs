@@ -47,15 +47,7 @@ namespace Marketplace.WebApi.Infrastructure
             var aggregate = (T) Activator.CreateInstance(typeof(T), true);
 
             var page = await _eventStore.ReadStreamEventsForwardAsync(stream, 0, 1024, false);
-            aggregate.Load(page.Events.Select(evt =>
-                                                  //var metaData = JsonConvert.DeserializeObject<EventMetadata>(
-                                                  //    Encoding.UTF8.GetString(evt.Event.Metadata));
-                                                  //var type = Type.GetType(metaData.ClrType);
-                                                  //var json = Encoding.UTF8.GetString(evt.Event.Data);
-                                                  //var data = JsonConvert.DeserializeObject(json, type);
-                                                  //return data;
-                                                  evt.Deserialize()
-                           ).ToArray());
+            aggregate.Load(page.Events.Select(evt => evt.Deserialize()).ToArray());
             return aggregate;
         }
 
