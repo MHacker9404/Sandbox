@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using Serilog.Debugging;
 
 namespace Marketplace.WebApi
 {
@@ -15,35 +14,33 @@ namespace Marketplace.WebApi
     {
         public static async Task Main(string[] args)
         {
-            //Build Config
-            var currentEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            var configuration = new ConfigurationBuilder()
-                                .AddJsonFile("appsettings.json", false, false)
-                                .AddJsonFile($"appsettings.{currentEnv}.json", optional: true, false)
-                                .AddEnvironmentVariables()
-                                .Build();
-
-            //Configure logger
-            Log.Logger = new LoggerConfiguration()
-                         .ReadFrom.Configuration(configuration)
-                         .Enrich.WithMachineName()
-                         .Enrich.FromLogContext()
-                         .Enrich.WithThreadId()
-                         .Enrich.WithCorrelationId()
-                         .Enrich.WithCaller()
-                         .CreateLogger();
-
-            //SelfLog.Enable(msg => Debug.WriteLine(msg));
-            //SelfLog.Enable(Console.Error);
-
             try
             {
+                var currentEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                var build = CreateHostBuilder(args).Build();
                 Log.Information($"Starting web host - {currentEnv}");
-                await CreateHostBuilder(args).Build().RunAsync();
+                await build.RunAsync();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "Web Host terminated unexpectedly");
+                // Log.Logger will likely be internal type "Serilog.Core.Pipeline.SilentLogger".
+                if (Log.Logger == null || Log.Logger.GetType().Name == "SilentLogger")
+                    // Loading configuration or Serilog failed.
+                    // This will create a logger that can be captured by AWS logger.
+                    // To enable AWS logger, in AWS Portal:
+                    // 1. Go to WebApp
+                    // 2. App Service logs
+                    // 3. Enable "Application Logging (Filesystem)", "Application Logging (Filesystem)" and "Detailed error messages"
+                    // 4. Set Retention Period (Days) to 10 or similar value
+                    // 5. Save settings
+                    // 6. Under Overview, restart web app
+                    // 7. Go to Log Stream and observe the logs
+                    Log.Logger = new LoggerConfiguration()
+                                 .MinimumLevel.Debug()
+                                 .WriteTo.Console()
+                                 .CreateLogger();
+
+                Log.Fatal(ex, "Host terminated unexpectedly");
             }
             finally
             {
@@ -53,13 +50,37 @@ namespace Marketplace.WebApi
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                //.UseSerilog((hc, lc) =>
-                //            {
-                //                lc.ReadFrom.Configuration(hc.Configuration).Enrich.WithMachineName().Enrich.FromLogContext().Enrich.WithThreadId().Enrich
-                //                  .WithCorrelationId();
-                //            })
-                .UseSerilog(Log.Logger)
-                .UseLamar()
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+                .ConfigureWebHostDefaults(webBuilder =>
+                                          {
+                                              webBuilder.UseStartup<Startup>()
+                                                        .CaptureStartupErrors(true)
+                                                        .ConfigureAppConfiguration(config =>
+                                                                                   {
+                                                                                       // Used for local settings like connection strings.
+                                                                                       config.AddJsonFile("appsettings.Local.json", true);
+                                                                                   })
+                                                        .UseLamar()
+                                                        .UseSerilog((hostingContext, loggerConfiguration) =>
+                                                                    {
+                                                                        loggerConfiguration
+                                                                            .ReadFrom.Configuration(hostingContext.Configuration)
+                                                                            .Enrich.FromLogContext()
+                                                                            .Enrich.WithMachineName()
+                                                                            .Enrich.WithThreadId()
+                                                                            .Enrich.WithCorrelationId()
+                                                                            .Enrich.WithCaller()
+                                                                            .Enrich.WithProperty(
+                                                                                "ApplicationName"
+                                                                                , typeof(Program).Assembly.GetName().Name)
+                                                                            .Enrich.WithProperty("Environment", hostingContext.HostingEnvironment);
+
+#if DEBUG
+                                                                        // Used to filter out potentially bad data due debugging.
+                                                                        // Very useful when doing Seq dashboards and want to remove logs under debugging session.
+                                                                        loggerConfiguration.Enrich.WithProperty("DebuggerAttached"
+                                                                                                                , Debugger.IsAttached);
+#endif
+                                                                    });
+                                          });
     }
 }

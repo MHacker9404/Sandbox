@@ -103,28 +103,35 @@ namespace Marketplace.WebApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            // This will make the HTTP requests log as rich logs instead of plain text.
+            app.UseSerilogRequestLogging();
+
             Log.Debug("Configure");
 
             app.UseCors();
 
+            // Enable middleware to serve generated Swagger as a JSON endpoint.
+            app.UseSwagger();
+
+            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
+            // specifying the Swagger JSON endpoint.
+            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); });
+
             //if (env.IsEnvironment("Debug"))
             if (env.IsDevelopment())
             {
-                // Enable middleware to serve generated Swagger as a JSON endpoint.
-                app.UseSwagger();
-
-                // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
-                // specifying the Swagger JSON endpoint.
-                app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); });
-
                 app.UseDeveloperExceptionPage();
 
                 var container = (IContainer) app.ApplicationServices;
-                //Log.Debug(container.WhatDidIScan());
+                Log.Debug(container.WhatDidIScan());
                 Log.Debug(container.WhatDoIHave());
             }
 
             app.UseRouting();
+
+            //app.UseAuthorization( );
+            //app.UseHttpsRedirection();
+
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
 
@@ -139,7 +146,8 @@ namespace Marketplace.WebApi
                                 , CustomizeJsonDeserializer = serializer =>
                                                               {
                                                                   serializer.ContractResolver = new PrivateResolver();
-                                                                  serializer.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
+                                                                  serializer.ConstructorHandling =
+                                                                      ConstructorHandling.AllowNonPublicDefaultConstructor;
                                                               }
                             }
                         };
