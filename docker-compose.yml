@@ -1,19 +1,155 @@
-version: '3.5'
+version: '3.7'
+
 services:
-  ravendb:
-    container_name: marketplace-ch11-ravendb
-    image: ravendb/ravendb
+  sonar:
+    image: sonarqube:latest
+    hostname: sonar-01
+    restart: always
     ports:
-      - '8080:8080'
-    environment:
-      - RAVEN_Security_UnsecuredAccessAllowed=PublicNetwork
-      - RAVEN_ARGS="--Setup.Mode=None"
-  eventstore:
-    container_name: marketplace-eventstore
-    image: eventstore/eventstore
+      - 9000:9000
+
+  portainer:
+    image: portainer/portainer:latest
+    command: -H unix:///var/run/docker.sock
+    restart: always
     ports:
-      - '2113:2113'
-      - '2114:2114'
+      - 9100:9000
+      - 8000:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+  #anchore:
+  api:
+    image: anchore/anchore-engine:v0.7.3
+    restart: always
+    depends_on:
+      - db
+      - catalog
+    ports:
+      - '9200:8228'
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
     environment:
-      - EVENTSTORE_EXT_HTTP_PORT=2113
-      - EVENTSTORE_EXT_TCP_PORT=2114
+      - ANCHORE_ENDPOINT_HOSTNAME=api
+      - ANCHORE_DB_HOST=db
+      - ANCHORE_DB_PASSWORD=mysecretpassword
+    command: ['anchore-manager', 'service', 'start', 'apiext']
+
+  # Catalog is the primary persistence and state manager of the system
+  catalog:
+    image: anchore/anchore-engine:v0.7.3
+    restart: always
+    depends_on:
+      - db
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
+    expose:
+      - 8228
+    environment:
+      - ANCHORE_ENDPOINT_HOSTNAME=catalog
+      - ANCHORE_DB_HOST=db
+      - ANCHORE_DB_PASSWORD=mysecretpassword
+    command: ['anchore-manager', 'service', 'start', 'catalog']
+
+  queue:
+    image: anchore/anchore-engine:v0.7.3
+    restart: always
+    depends_on:
+      - db
+      - catalog
+    expose:
+      - 8228
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
+    environment:
+      - ANCHORE_ENDPOINT_HOSTNAME=queue
+      - ANCHORE_DB_HOST=db
+      - ANCHORE_DB_PASSWORD=mysecretpassword
+    command: ['anchore-manager', 'service', 'start', 'simplequeue']
+
+  policy-engine:
+    image: anchore/anchore-engine:v0.7.3
+    restart: always
+    depends_on:
+      - db
+      - catalog
+    expose:
+      - 8228
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
+    environment:
+      - ANCHORE_ENDPOINT_HOSTNAME=policy-engine
+      - ANCHORE_DB_HOST=db
+      - ANCHORE_DB_PASSWORD=mysecretpassword
+    command: ['anchore-manager', 'service', 'start', 'policy_engine']
+
+  analyzer:
+    image: anchore/anchore-engine:v0.7.3
+    restart: always
+    depends_on:
+      - db
+      - catalog
+    expose:
+      - 8228
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
+    environment:
+      - ANCHORE_ENDPOINT_HOSTNAME=analyzer
+      - ANCHORE_DB_HOST=db
+      - ANCHORE_DB_PASSWORD=mysecretpassword
+    volumes:
+      - /analysis_scratch
+    command: ['anchore-manager', 'service', 'start', 'analyzer']
+
+  db:
+    image: 'postgres:9'
+    restart: always
+    volumes:
+      - anchore-db-volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+    expose:
+      - 5432
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: 100m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME-localstack_main}"
+    restart: always
+    image: localstack/localstack
+    ports:
+      - "4566-4599:4566-4599"
+      - "${PORT_WEB_UI-9300}:${PORT_WEB_UI-8080}"
+    environment:
+      - SERVICES=${SERVICES- }
+      - DEBUG=${DEBUG- }
+      - DATA_DIR=${DATA_DIR- }
+      - PORT_WEB_UI-9300=9300
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
+      - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOST_TMP_FOLDER=${TMPDIR}
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+volumes:
+  portainer_data:
+  anchore-db-volume:
+    # Set this to 'true' to use an external volume. In which case, it must be created manually with "docker volume create anchore-db-volume"
+    external: false
